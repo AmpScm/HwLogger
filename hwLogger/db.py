@@ -117,6 +117,7 @@ VALUES (?, ?, ?);
 # Database class
 # =====================
 
+
 class Database:
     """Async SQLite database handler for hwLogger."""
 
@@ -162,17 +163,18 @@ class Database:
     # Meter data
     # =====================
 
-    async def insert_meter_data(self, data: Dict[str, Any], 
-                               aggregates: Optional[Dict[str, float]] = None):
+    async def insert_meter_data(
+        self, data: Dict[str, Any], aggregates: Optional[Dict[str, float]] = None
+    ):
         """
         Insert meter data.
-        
+
         Args:
             data: Current meter reading
             aggregates: 5-minute aggregates (weighted avg, max, count)
         """
         ts = data.get("timestamp") or datetime.now().replace(microsecond=0).isoformat()
-        
+
         values = (
             ts,
             data.get("tariff"),
@@ -197,16 +199,17 @@ class Database:
             aggregates.get("l3_w_max") if aggregates else None,
             aggregates.get("reading_count") if aggregates else None,
         )
-        
+
         async with aiosqlite.connect(str(self.db_path)) as db:
             await db.execute(INSERT_METER, values)
             await db.commit()
-    
-    async def insert_meter_data_30s(self, data: Dict[str, Any], 
-                                     aggregates: Optional[Dict[str, float]] = None):
+
+    async def insert_meter_data_30s(
+        self, data: Dict[str, Any], aggregates: Optional[Dict[str, float]] = None
+    ):
         """Insert 30-second aggregate snapshot for last 24h."""
         ts = data.get("timestamp") or datetime.now().replace(microsecond=0).isoformat()
-        
+
         values = (
             ts,
             data.get("tariff"),
@@ -231,18 +234,17 @@ class Database:
             aggregates.get("l3_w_max") if aggregates else None,
             aggregates.get("reading_count") if aggregates else None,
         )
-        
+
         async with aiosqlite.connect(str(self.db_path)) as db:
             await db.execute(INSERT_METER_30S, values)
             await db.commit()
-    
+
     async def cleanup_old_30s_data(self):
         """Clean up 30-second data older than 24 hours."""
         cutoff = (datetime.utcnow() - timedelta(hours=24)).isoformat()
         async with aiosqlite.connect(str(self.db_path)) as db:
             await db.execute(
-                "DELETE FROM meter_data_30s WHERE timestamp < ?",
-                (cutoff,)
+                "DELETE FROM meter_data_30s WHERE timestamp < ?", (cutoff,)
             )
             await db.commit()
 
@@ -254,25 +256,41 @@ class Database:
             ) as cursor:
                 return await cursor.fetchone()
 
-    async def get_meter_data_range(self, start_ts: str, end_ts: str) -> List[Dict[str, Any]]:
+    async def get_meter_data_range(
+        self, start_ts: str, end_ts: str
+    ) -> List[Dict[str, Any]]:
         """Get meter data within timestamp range."""
         async with aiosqlite.connect(str(self.db_path)) as db:
             async with db.execute(
                 "SELECT * FROM meter_data WHERE timestamp >= ? AND timestamp <= ? "
                 "ORDER BY timestamp ASC",
-                (start_ts, end_ts)
+                (start_ts, end_ts),
             ) as cursor:
                 rows = await cursor.fetchall()
-                
+
                 columns = [
-                    "timestamp", "tariff", "import_kwh",
-                    "import_t1_kwh", "import_t2_kwh", "export_kwh",
-                    "w", "l1_w", "l2_w",
-                    "l3_w", "l1_v",
-                    "l2_v", "l3_v",
-                    "w_avg", "l1_w_avg", "l2_w_avg", "l3_w_avg",
-                    "w_max", "l1_w_max", "l2_w_max", "l3_w_max",
-                    "reading_count"
+                    "timestamp",
+                    "tariff",
+                    "import_kwh",
+                    "import_t1_kwh",
+                    "import_t2_kwh",
+                    "export_kwh",
+                    "w",
+                    "l1_w",
+                    "l2_w",
+                    "l3_w",
+                    "l1_v",
+                    "l2_v",
+                    "l3_v",
+                    "w_avg",
+                    "l1_w_avg",
+                    "l2_w_avg",
+                    "l3_w_avg",
+                    "w_max",
+                    "l1_w_max",
+                    "l2_w_max",
+                    "l3_w_max",
+                    "reading_count",
                 ]
                 return [dict(zip(columns, row)) for row in rows]
 
@@ -294,7 +312,7 @@ class Database:
             async with db.execute(
                 "SELECT hour, price_eur_per_kwh FROM hour_price "
                 "WHERE hour LIKE ? ORDER BY hour ASC",
-                (f"{date_str}%",)
+                (f"{date_str}%",),
             ) as cursor:
                 return await cursor.fetchall()
 
@@ -302,7 +320,6 @@ class Database:
         """Check if prices exist for a date."""
         async with aiosqlite.connect(str(self.db_path)) as db:
             async with db.execute(
-                "SELECT 1 FROM hour_price WHERE hour LIKE ? LIMIT 1",
-                (f"{date_str}%",)
+                "SELECT 1 FROM hour_price WHERE hour LIKE ? LIMIT 1", (f"{date_str}%",)
             ) as cursor:
                 return (await cursor.fetchone()) is not None

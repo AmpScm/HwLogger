@@ -12,12 +12,12 @@ from datetime import datetime, timedelta
 class WeightedAverageCalculator:
     """
     Calculates weighted averages for power and current readings.
-    
+
     Each reading is weighted by how long it was "active" until the
     next reading. For example, if readings occur at:
     - T0: 1000W (active for 5 minutes until T5)
     - T5: 1100W (active for 5 minutes until T10)
-    
+
     The weighted average for the T0-T10 block is:
     (1000 * 5 + 1100 * 5) / 10 = 1050W
     """
@@ -40,11 +40,11 @@ class WeightedAverageCalculator:
     ) -> Optional[Dict[str, float]]:
         """
         Calculate weighted averages for readings within a time block.
-        
+
         Args:
             readings: List of meter data dicts with timestamps, sorted ascending by time.
             interval_seconds: The target block duration (default 5 minutes = 300s).
-        
+
         Returns:
             Dict with keys like 'w_avg', 'w_max', 'l1_w_avg', etc.
             Returns None if insufficient data.
@@ -55,9 +55,11 @@ class WeightedAverageCalculator:
         # Parse timestamps
         try:
             times = [
-                datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00"))
-                if isinstance(r["timestamp"], str)
-                else r["timestamp"]
+                (
+                    datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00"))
+                    if isinstance(r["timestamp"], str)
+                    else r["timestamp"]
+                )
                 for r in readings
             ]
         except (ValueError, AttributeError):
@@ -79,10 +81,7 @@ class WeightedAverageCalculator:
 
         # Calculate power averages and maximums
         for field in WeightedAverageCalculator.POWER_FIELDS:
-            values = [
-                r.get(field)
-                for r in readings
-            ]
+            values = [r.get(field) for r in readings]
             if all(v is not None for v in values):
                 weighted_sum = sum(v * d for v, d in zip(values, durations))
                 avg = weighted_sum / total_duration
@@ -98,11 +97,11 @@ class WeightedAverageCalculator:
     ) -> Tuple[datetime, datetime]:
         """
         Get the start and end timestamps of the current 5-minute block.
-        
+
         Args:
             reference_time: Time to calculate block for (default: now).
             interval_seconds: Block duration in seconds.
-        
+
         Returns:
             Tuple of (block_start, block_end).
         """
@@ -110,12 +109,19 @@ class WeightedAverageCalculator:
             reference_time = datetime.utcnow()
 
         # Find start of current block (round down to nearest interval)
-        seconds_into_block = reference_time.second + (reference_time.minute % (interval_seconds // 60)) * 60
-        seconds_into_block = (reference_time.hour * 3600 + reference_time.minute * 60 + reference_time.second) % interval_seconds
-        
+        seconds_into_block = (
+            reference_time.second
+            + (reference_time.minute % (interval_seconds // 60)) * 60
+        )
+        seconds_into_block = (
+            reference_time.hour * 3600
+            + reference_time.minute * 60
+            + reference_time.second
+        ) % interval_seconds
+
         block_start = reference_time - timedelta(seconds=seconds_into_block)
         block_start = block_start.replace(microsecond=0)
-        
+
         block_end = block_start + timedelta(seconds=interval_seconds)
 
         return block_start, block_end

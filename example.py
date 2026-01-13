@@ -30,28 +30,31 @@ async def setup_example():
     print("=" * 60)
     print("hwLogger Setup Example")
     print("=" * 60)
-    
+
     # Create test database
     config = Config(
         db_file=Path("test_hw_logger.db"),
         p1_host="127.0.0.1",  # Placeholder, will be stored in DB
         api_port=8080,
     )
-    
+
     print(f"\nConfig:")
     print(f"  DB File: {config.db_file}")
     print(f"  API: http://{config.api_host}:{config.api_port}")
-    
+
     # Initialize database
     db = Database(config.db_file)
     await db.init()
     print(f"\n✓ Database initialized")
-    
+
     # Store P1 device host
-    p1_host = input("Enter your P1 device IP address (e.g., 192.168.1.100): ").strip() or "127.0.0.1"
+    p1_host = (
+        input("Enter your P1 device IP address (e.g., 192.168.1.100): ").strip()
+        or "127.0.0.1"
+    )
     await db.set_config("p1_host", p1_host)
     print(f"✓ P1 host stored in database: {p1_host}")
-    
+
     # Store token
     token = input("Enter your P1 bearer token: ").strip()
     if token:
@@ -59,18 +62,18 @@ async def setup_example():
         print(f"✓ Token stored in database")
     else:
         print(f"⚠️  Skipped token storage (required to run daemon)")
-    
+
     # Display WebSocket URL
     config.p1_host = p1_host  # Update config to show correct URL
     print(f"\n✓ P1 WebSocket: {config.get_p1_ws_url()}")
-    
+
     # Verify both are stored
     if token:
         stored_token = await db.get_config("p1_token")
         stored_host = await db.get_config("p1_host")
         if stored_token == token and stored_host == p1_host:
             print(f"✓ Configuration verified in database")
-    
+
     print("\n" + "=" * 60)
     print("Setup complete!")
     print(f"\nDatabase configuration:")
@@ -90,10 +93,10 @@ async def run_daemon_example():
     """
     config = Config.from_env()
     daemon = HWLoggerDaemon(config)
-    
+
     try:
         await daemon.start()
-        
+
         # Keep running
         while True:
             await asyncio.sleep(1)
@@ -104,7 +107,7 @@ async def run_daemon_example():
 
 if __name__ == "__main__":
     import sys
-    
+
     if len(sys.argv) > 1 and sys.argv[1] == "run":
         print("Starting daemon (requires P1 device)...")
         asyncio.run(run_daemon_example())

@@ -24,7 +24,7 @@ class P1HTTPClient:
     ):
         """
         Initialize HTTP client.
-        
+
         Args:
             api_url: Base API URL (e.g., http://192.168.1.100/api/v2)
             token: Bearer token for authentication
@@ -45,12 +45,12 @@ class P1HTTPClient:
     async def get_data(self) -> Optional[Dict[str, Any]]:
         """
         Fetch current meter data from /data endpoint.
-        
+
         Returns:
             Dictionary with meter data or None on error
         """
         url = f"{self.api_url}/data"
-        
+
         try:
             async with aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=self.timeout_seconds)
@@ -74,12 +74,12 @@ class P1HTTPClient:
     async def get_status(self) -> Optional[Dict[str, Any]]:
         """
         Fetch device status from /status endpoint.
-        
+
         Returns:
             Dictionary with device status or None on error
         """
         url = f"{self.api_url}/status"
-        
+
         try:
             async with aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=self.timeout_seconds)
@@ -103,7 +103,7 @@ class P1HTTPClient:
     async def health_check(self) -> bool:
         """
         Check if P1 device is accessible and authenticated.
-        
+
         Returns:
             True if device is accessible, False otherwise
         """

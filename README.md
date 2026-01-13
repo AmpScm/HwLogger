@@ -41,7 +41,7 @@ The daemon stores data in `meter_data.db`:
 - **Energy**: `timestamp`, `tariff`, `import_kwh`, `export_kwh`, `import_t1_kwh`, `import_t2_kwh`
 - **Power**: `w` (total), `l1_w`, `l2_w`, `l3_w` (phase watts)
 - **Voltage**: `l1_v`, `l2_v`, `l3_v`
-- **Aggregates**: `*_avg` (1 decimal), `*_max` (2 decimals)
+- **Aggregates**: `*_avg` (1 decimal), `*_max`
 - **Metadata**: `reading_count` (0 = synthetic/backfilled block)
 
 ### meter_data_30s table (30-second snapshots)
@@ -113,7 +113,7 @@ sqlite3 meter_data.db "SELECT timestamp, w_avg, w_max FROM meter_data LIMIT 10;"
 
 | Column | Type | NOT NULL | Notes |
 |--------|------|----------|-------|
-| timestamp | TEXT | ✓ | Window-end time (ISO8601 + microseconds) |
+| timestamp | TEXT | ✓ | Window-end time (ISO8601) |
 | tariff | INT | | Current tariff (1 or 2) |
 | import_kwh | REAL | ✓ | Total import energy (kWh) |
 | import_t1_kwh | REAL | ✓ | Tariff 1 import (kWh) |

@@ -18,6 +18,7 @@ if __name__ == "__main__":
         sys.exit(0)
     except Exception as e:
         import traceback
+
         print(f"Fatal error: {e}", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)

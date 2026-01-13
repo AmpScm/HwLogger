@@ -18,10 +18,12 @@ from hwLogger.config import Config
 class PriceFetcher:
     """Fetch electricity prices from kwhprice.eu."""
 
-    def __init__(self, db: Database, kwhprice_url: str = "https://kwhprice.eu/prices/NL"):
+    def __init__(
+        self, db: Database, kwhprice_url: str = "https://kwhprice.eu/prices/NL"
+    ):
         """
         Initialize price fetcher.
-        
+
         Args:
             db: Database instance.
             kwhprice_url: Base URL for kwhprice.eu API (NL prices).
@@ -36,21 +38,23 @@ class PriceFetcher:
     ) -> List[Tuple[str, float]]:
         """
         Fetch NL day-ahead prices for one date.
-        
+
         Prices from API are in €/MWh -> converted to €/kWh.
-        
+
         Args:
             session: aiohttp session.
             target_date: Date to fetch prices for (YYYY-MM-DD).
-        
+
         Returns:
             List of (hour_timestamp, price_eur_per_kwh) tuples.
             Empty list if data not available (future dates) or error.
         """
         url = f"{self.kwhprice_url}/{target_date.isoformat()}"
-        
+
         try:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            async with session.get(
+                url, timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
                 if resp.status == 404:
                     # Expected: data not yet published (future dates)
                     return []
@@ -65,7 +69,7 @@ class PriceFetcher:
 
         # Extract prices for the date
         day_prices = data.get("NL", {}).get(target_date.isoformat(), [])
-        
+
         results = []
         for item in day_prices:
             try:
@@ -87,17 +91,19 @@ class PriceFetcher:
     ):
         """
         Fetch and store prices for today, future days, and recent past days.
-        
+
         Only fetches dates that don't already have prices in the database.
-        
+
         Args:
             lookback_days: How many days back to attempt fetching (usually already have these).
             lookahead_days: How many future days to attempt fetching.
         """
         today = date.today()
-        
+
         # Dates to check: today, lookahead_days forward, lookback_days backward
-        dates_to_check = [today + timedelta(days=i) for i in range(-lookback_days, lookahead_days + 1)]
+        dates_to_check = [
+            today + timedelta(days=i) for i in range(-lookback_days, lookahead_days + 1)
+        ]
 
         async with aiohttp.ClientSession() as session:
             for target_date in dates_to_check:
@@ -110,12 +116,14 @@ class PriceFetcher:
                 # Fetch and store
                 print(f"Fetching prices for {target_date}...")
                 prices = await self.fetch_prices_for_date(session, target_date)
-                
+
                 if prices:
                     await self.db.insert_prices(prices)
                     print(f"✓ Stored {len(prices)} prices for {target_date}")
                 else:
-                    print(f"  No prices available for {target_date} (may be future date)")
+                    print(
+                        f"  No prices available for {target_date} (may be future date)"
+                    )
 
 
 async def run_price_update():
@@ -123,13 +131,13 @@ async def run_price_update():
     config = Config.from_env()
     db = Database(config.db_file)
     await db.init()
-    
+
     fetcher = PriceFetcher(db, config.kwhprice_url)
     await fetcher.update_prices(
         lookback_days=config.lookback_days,
         lookahead_days=2,
     )
-    
+
     print("\nPrice update complete!")
 
 

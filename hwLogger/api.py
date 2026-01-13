@@ -20,7 +20,7 @@ class RestAPI:
     def __init__(self, db, config):
         """
         Initialize REST API.
-        
+
         Args:
             db: Database instance.
             config: Config instance.
@@ -39,10 +39,12 @@ class RestAPI:
 
     async def handle_health(self, request: web.Request) -> web.Response:
         """GET /health - System health check."""
-        return web.json_response({
-            "status": "ok",
-            "timestamp": datetime.utcnow().isoformat(),
-        })
+        return web.json_response(
+            {
+                "status": "ok",
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
 
     async def handle_latest_data(self, request: web.Request) -> web.Response:
         """GET /api/v1/latest - Get latest meter data."""
@@ -65,7 +67,7 @@ class RestAPI:
         """
         GET /api/v1/data?start=<timestamp>&end=<timestamp>
         Get meter data within timestamp range.
-        
+
         Query params:
             start: ISO 8601 timestamp (default: 24 hours ago)
             end: ISO 8601 timestamp (default: now)
@@ -77,21 +79,22 @@ class RestAPI:
 
             if not start_str:
                 start = datetime.utcnow() - timedelta(days=1)
-                start_str = start.isoformat()
+                start_str = start.replace(microsecond=0).isoformat()
 
             if not end_str:
                 end = datetime.utcnow()
-                end_str = end.isoformat()
-
+                end_str = end.replace(microsecond=0).isoformat()
             # Retrieve data
             data = await self.db.get_meter_data_range(start_str, end_str)
-            
-            return web.json_response({
-                "start": start_str,
-                "end": end_str,
-                "count": len(data),
-                "data": data,
-            })
+
+            return web.json_response(
+                {
+                    "start": start_str,
+                    "end": end_str,
+                    "count": len(data),
+                    "data": data,
+                }
+            )
         except Exception as e:
             logger.error(f"Error retrieving data range: {e}")
             return web.json_response(
@@ -119,15 +122,14 @@ class RestAPI:
                 )
 
             prices = await self.db.get_prices_for_date(date_str)
-            
-            return web.json_response({
-                "date": date_str,
-                "count": len(prices),
-                "prices": [
-                    {"hour": h, "price_eur_per_kwh": p}
-                    for h, p in prices
-                ],
-            })
+
+            return web.json_response(
+                {
+                    "date": date_str,
+                    "count": len(prices),
+                    "prices": [{"hour": h, "price_eur_per_kwh": p} for h, p in prices],
+                }
+            )
         except Exception as e:
             logger.error(f"Error retrieving prices: {e}")
             return web.json_response(

@@ -3,4 +3,4 @@ aiohttp-session>=2.11,<3
 aiohttp>=3.11,<4
 aiosqlite>=0.18,<1
 python-dateutil
-websockets>=12,<13
+
