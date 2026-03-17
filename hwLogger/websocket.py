@@ -256,4 +256,4 @@ class P1WebSocketListener:
             try:
                 await self._ws.send_str(json.dumps(data))
             except Exception as e:
-                logger.error(f"Failed to send message: {e}")
+                logger.error("Failed to send message: %s", e)

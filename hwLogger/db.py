@@ -3,6 +3,32 @@ Database management for hwLogger.
 
 Handles SQLite database initialization, schema management,
 and data operations.
+
+TIMESTAMP SEMANTICS (STRICT):
+=============================
+
+Block Membership Rule:
+- All timestamps represent EXACT meter times (no approximation)
+- A reading belongs to block T if: last_block_time < reading_time <= T
+- Equivalently: T - interval < reading_time <= T
+
+Example (30-second blocks):
+- Block ending at 14:05:30:
+  * Includes readings: 14:05:00 < time <= 14:05:30
+  * Previous block (14:05:00) ended exactly at 14:05:00
+  * First reading at 14:05:00.001 belongs to the 14:05:30 block
+  * Last reading at 14:05:30.000 belongs to the 14:05:30 block
+
+METER READINGS:
+- Received approximately every 1 second from the meter
+- If measurement includes "timestamp", use that exact value (meter provided)
+- If no timestamp, use daemon UTC time as fallback
+
+ENERGY FIELDS:
+- import_kwh, export_kwh, etc. are absolute meter counter values
+- They represent the meter's reading AT that block's end timestamp
+- Not accumulated within blocks - they're the meter's current total
+- Can calculate consumption as: current_block - previous_block
 """
 
 import aiosqlite
@@ -41,6 +67,10 @@ CREATE TABLE IF NOT EXISTS meter_data (
     l3_w_max REAL,
     reading_count INTEGER NOT NULL
 );
+-- TIMESTAMP SEMANTICS (5-minute blocks):
+-- - timestamp: ISO 8601, represents END of 5-minute measurement period
+-- - Block membership: T - 300 < reading_time <= T (last_block < reading_time <= current_block)
+-- - Data stored indefinitely (primary historical record)
 """
 
 CREATE_METER_30S_TABLE = """
@@ -69,6 +99,10 @@ CREATE TABLE IF NOT EXISTS meter_data_30s (
     l3_w_max REAL,
     reading_count INTEGER NOT NULL
 );
+-- TIMESTAMP SEMANTICS (30-second blocks):
+-- - timestamp: ISO 8601, represents END of 30-second measurement period
+-- - Block membership: T - 30 < reading_time <= T (last_block < reading_time <= current_block)
+-- - Data rotated after 24 hours (rolling window storage)
 """
 
 CREATE_PRICE_TABLE = """
@@ -197,7 +231,7 @@ class Database:
             aggregates.get("l1_w_max") if aggregates else None,
             aggregates.get("l2_w_max") if aggregates else None,
             aggregates.get("l3_w_max") if aggregates else None,
-            aggregates.get("reading_count") if aggregates else None,
+            aggregates.get("reading_count") if aggregates else 0,
         )
 
         async with aiosqlite.connect(str(self.db_path)) as db:
@@ -232,7 +266,7 @@ class Database:
             aggregates.get("l1_w_max") if aggregates else None,
             aggregates.get("l2_w_max") if aggregates else None,
             aggregates.get("l3_w_max") if aggregates else None,
-            aggregates.get("reading_count") if aggregates else None,
+            aggregates.get("reading_count") if aggregates else 0,
         )
 
         async with aiosqlite.connect(str(self.db_path)) as db:
